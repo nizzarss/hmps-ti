@@ -163,82 +163,119 @@ if (spaceCanvas && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
   }, {passive:true});
 }
 
-// V24 — welcome / boot sequence with best-effort automatic audio.
+// V26 — welcome boot sequence: start audio on the SAME natural user gesture.
 (() => {
   const welcome = document.querySelector('#welcomeScreen');
   const skip = document.querySelector('#welcomeSkip');
+  const prompt = document.querySelector('#welcomePrompt');
   if (!welcome) return;
 
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  let closed = false;
   const audio = document.querySelector('#welcomeAudio');
+  let started = false;
   let audioStarted = false;
-  let retryTimer = null;
+  let closed = false;
+  let finishTimer = null;
+
+  const removeBeginListeners = () => {
+    window.removeEventListener('pointerup', begin, true);
+    window.removeEventListener('click', begin, true);
+    window.removeEventListener('touchend', begin, true);
+    window.removeEventListener('wheel', begin, true);
+    window.removeEventListener('keydown', begin, true);
+    skip?.removeEventListener('click', begin, true);
+  };
+
+  const removeRetryListeners = () => {
+    window.removeEventListener('pointerup', retryAudio, true);
+    window.removeEventListener('click', retryAudio, true);
+    window.removeEventListener('touchend', retryAudio, true);
+    window.removeEventListener('wheel', retryAudio, true);
+    window.removeEventListener('keydown', retryAudio, true);
+  };
 
   const finish = () => {
     if (closed) return;
     closed = true;
-    if (retryTimer) clearInterval(retryTimer);
+    removeBeginListeners();
+    removeRetryListeners();
+    if (finishTimer) clearTimeout(finishTimer);
     welcome.classList.add('is-exiting');
     document.body.classList.remove('preloading');
-    setTimeout(() => welcome.remove(), reduce ? 0 : 850);
+    setTimeout(() => welcome.remove(), reduce ? 0 : 900);
   };
 
-  const startAudio = () => {
-    if (!audio || audioStarted || reduce) return false;
+  const playWelcomeAudio = () => {
+    if (!audio || reduce || audioStarted) return false;
     audio.volume = 0.62;
+    audio.muted = false;
     try {
-      const promise = audio.play();
-      if (promise && typeof promise.then === 'function') {
-        promise.then(() => {
+      // IMPORTANT: call play() directly inside the user-gesture handler.
+      // Avoid setTimeout/requestAnimationFrame here because browsers may
+      // revoke the transient user activation before playback starts.
+      const result = audio.play();
+      if (result && typeof result.then === 'function') {
+        result.then(() => {
           audioStarted = true;
-          if (retryTimer) clearInterval(retryTimer);
+          removeRetryListeners();
         }).catch(() => {
-          // Browser autoplay policy may reject sound until a user gesture occurs.
-          // Keep retrying during the welcome screen without requiring a visible button.
+          // Some browsers may still reject playback; keep the next gesture as fallback.
         });
       } else {
         audioStarted = true;
+        removeRetryListeners();
       }
       return true;
-    } catch {
+    } catch (_) {
       return false;
     }
   };
 
-  // Attempt immediately, then again after the document is ready/visible.
-  // The audio element also carries the native autoplay attribute.
-  startAudio();
-  window.addEventListener('DOMContentLoaded', startAudio, { once: true });
-  window.addEventListener('load', startAudio, { once: true });
-  window.addEventListener('pageshow', startAudio, { once: true });
-
-  // Best-effort retries while the welcome screen is active. This does not bypass
-  // browser autoplay restrictions; it simply starts instantly on browsers that allow it.
-  if (audio && !reduce) {
-    retryTimer = setInterval(() => {
-      if (audioStarted || closed) {
-        clearInterval(retryTimer);
-        return;
-      }
-      startAudio();
-    }, 900);
+  function retryAudio(event) {
+    if (event && event.isTrusted === false) return;
+    playWelcomeAudio();
   }
 
-  // A user gesture remains a compatibility fallback for browsers that block autoplay.
-  const unlockOnGesture = () => {
-    if (!audioStarted) startAudio();
-    if (audioStarted) {
-      window.removeEventListener('pointerdown', unlockOnGesture);
-      window.removeEventListener('keydown', unlockOnGesture);
-      window.removeEventListener('touchstart', unlockOnGesture);
+  function begin(event) {
+    if (started || closed) return;
+    if (event && event.isTrusted === false) return;
+
+    started = true;
+    welcome.classList.remove('waiting');
+    welcome.classList.add('started');
+    prompt?.classList.add('is-hidden');
+
+    // Start the sound FIRST, while transient user activation is definitely alive.
+    const played = playWelcomeAudio();
+
+    removeBeginListeners();
+    if (!audioStarted || !played) {
+      window.addEventListener('pointerup', retryAudio, {capture:true, passive:true});
+      window.addEventListener('click', retryAudio, {capture:true, passive:true});
+      window.addEventListener('touchend', retryAudio, {capture:true, passive:true});
+      window.addEventListener('wheel', retryAudio, {capture:true, passive:true});
+      window.addEventListener('keydown', retryAudio, {capture:true, passive:true});
     }
-  };
-  window.addEventListener('pointerdown', unlockOnGesture, { passive: true });
-  window.addEventListener('keydown', unlockOnGesture, { passive: true });
-  window.addEventListener('touchstart', unlockOnGesture, { passive: true });
-  skip?.addEventListener('click', unlockOnGesture);
 
-  setTimeout(finish, reduce ? 320 : 3400);
+    // Give the opening sequence time to breathe after the first interaction.
+    finishTimer = setTimeout(finish, reduce ? 500 : 3600);
+  }
+
+  if (audio) {
+    audio.preload = 'auto';
+    audio.setAttribute('playsinline', '');
+    audio.setAttribute('webkit-playsinline', '');
+  }
+
+  if (!reduce) {
+    // Use gesture events that browsers consistently treat as user activation.
+    // pointerup/touchend/click are the important ones for audio unlock.
+    window.addEventListener('pointerup', begin, {capture:true, passive:true});
+    window.addEventListener('click', begin, {capture:true, passive:true});
+    window.addEventListener('touchend', begin, {capture:true, passive:true});
+    window.addEventListener('wheel', begin, {capture:true, passive:true});
+    window.addEventListener('keydown', begin, {capture:true, passive:true});
+  } else {
+    begin();
+  }
 })();
-

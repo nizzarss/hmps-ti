@@ -68,3 +68,20 @@
 @keyframes welcomeBeam{from{transform:translateX(0)}to{transform:translateX(150vw)}}
 @media(max-width:700px){.welcome-topline{top:26px;font-size:.55rem;letter-spacing:.16em}.welcome-topline span{width:25px}.welcome-center{width:calc(100% - 32px)}.welcome-logo-wrap{width:215px;height:215px;margin-bottom:24px}.welcome-logo-shell{width:142px;height:142px}.welcome-orbit-a{width:196px;height:80px}.welcome-orbit-b{width:230px;height:110px}.welcome-logo-ring{inset:-19px}.welcome-chip{right:-3px;bottom:0;font-size:.53rem;padding:7px 9px}.welcome-center h2{font-size:clamp(1.7rem,8.7vw,2.45rem);line-height:1.03}.welcome-kicker{font-size:.61rem}.welcome-sub{font-size:.73rem}.welcome-progress{margin-top:21px}.welcome-status{font-size:.49rem}.welcome-skip{right:18px;bottom:20px;font-size:.57rem}}
 @media(prefers-reduced-motion:reduce){.welcome-screen *{animation:none!important;transition:none!important}.welcome-logo-shell{opacity:1;transform:none}.welcome-topline,.welcome-kicker,.welcome-center h2,.welcome-sub,.welcome-progress,.welcome-status,.welcome-chip,.welcome-skip{opacity:1}}
+
+/* V25 — wait for the first natural interaction before starting the welcome sequence. */
+.welcome-screen.waiting .welcome-logo-shell{opacity:.96;transform:none;animation:none}
+.welcome-screen.waiting .welcome-topline{opacity:1;animation:none}
+.welcome-screen.waiting .welcome-kicker{opacity:.78;animation:none}
+.welcome-screen.waiting .welcome-center h2{opacity:1;animation:none}
+.welcome-screen.waiting .welcome-sub{opacity:1;animation:none}
+.welcome-screen.waiting .welcome-progress{opacity:.55;animation:none}
+.welcome-screen.waiting .welcome-progress span{width:14%;animation:none}
+.welcome-screen.waiting .welcome-status{opacity:.85;animation:none}
+.welcome-screen.waiting .welcome-chip{opacity:1;animation:none}
+.welcome-screen.waiting .welcome-skip{opacity:1;animation:none}
+.welcome-screen.waiting .welcome-logo-ring:before{animation-play-state:paused}
+.welcome-prompt{margin:0;color:#8da6d1;font:700 .64rem/1.2 "Space Grotesk";letter-spacing:.14em;text-transform:uppercase;text-align:center;opacity:.82;animation:welcomePromptPulse 1.8s ease-in-out infinite}
+.welcome-prompt.is-hidden{opacity:0;transform:translateY(6px);pointer-events:none}
+@keyframes welcomePromptPulse{0%,100%{opacity:.42}50%{opacity:1}}
+@media(max-width:700px){.welcome-prompt{font-size:.54rem;letter-spacing:.11em}}
