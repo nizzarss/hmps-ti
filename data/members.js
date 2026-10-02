@@ -1,12 +1,11 @@
-// Data organisasi. Perbarui di sini; UI tidak perlu diubah.
-// foto: isi path, mis. "assets/members/firda.jpg". Kosong = tampil inisial.
+
 const ORG = {
   nama: "HMPS Teknologi Informasi",
   prodi: "Teknologi Informasi",
   universitas: "UIN Salatiga",
   periode: "2026",
   kabinet: "Arunika",
-  fakultas: null // [Data perlu dikonfirmasi]
+  fakultas: null "Sains dan teknologi"
 };
 const DIVISI = [
   { kode: "BPH", nama: "Badan Pengurus Harian" },
